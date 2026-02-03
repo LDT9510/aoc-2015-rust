@@ -30,3 +30,4 @@ tinyjson = "2.5.1"
 # Solution dependencies
 regex = "1.12.2"
 md-5 = "0.10.6"
+itertools = "0.14.0"
