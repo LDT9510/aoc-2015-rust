@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
+use advent_of_code::utils::parsing::UnwrapNextInt;
 
 advent_of_code::solution!(9);
 
@@ -28,7 +29,7 @@ impl<'a> Graph<'a> {
             split.next(); // skip "to"
             let end_city = split.next().unwrap();
             split.next(); // skip "="
-            let distance = split.next().unwrap().parse().unwrap();
+            let distance = split.unwrap_next_int();
 
             Self::add_path(start_city, end_city, distance, &mut graph);
             Self::add_path(end_city, start_city, distance, &mut graph);

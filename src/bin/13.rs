@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
+use advent_of_code::utils::parsing::UnwrapNextInt;
 
 advent_of_code::solution!(13);
 
@@ -24,7 +25,7 @@ fn parse_guest_list(input: &str) -> (GuestList<'_>, GuestAffinity<'_>) {
             _ => unreachable!("Bad verb"),
         };
 
-        let value = split.next().unwrap().parse::<i64>().unwrap() * sign;
+        let value = split.unwrap_next_int::<i64>() * sign;
 
         for _ in 0..6 {
             split.next(); // "happiness units by sitting next to"
