@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::str::FromStr;
 
 pub trait UnwrapNextInt {
@@ -14,16 +13,6 @@ impl<'a, U: Iterator<Item = &'a str>> UnwrapNextInt for U {
     {
         self.next().unwrap().parse::<T>().unwrap()
     }
-}
-
-pub struct IntParser<'a, T> {
-    slice: &'a str,
-    _phantom_data: PhantomData<T>,
-}
-
-pub struct NamedIntParser<'a, T> {
-    slice: &'a str,
-    _phantom_data: PhantomData<T>,
 }
 
 fn part_of_digit(byte: u8, curr_idx: usize, slice: &[u8]) -> bool {
@@ -53,89 +42,73 @@ fn extract_int_indexes(bytes: &[u8]) -> (usize, usize) {
     (start_idx, end_idx)
 }
 
-pub trait IterInts {
-    fn iter_ints<T: FromStr>(&self) -> IntParser<'_, T>;
+fn split_next_int<'a>(slice: &mut &'a str) -> Option<(&'a str, &'a str, bool)> {
+    if slice.is_empty() {
+        return None;
+    }
 
-    fn iter_named_ints<T: FromStr>(&self) -> NamedIntParser<'_, T>
-    where
-        <T as FromStr>::Err: std::fmt::Debug;
+    let bytes = slice.as_bytes();
+    let (start_idx, end_idx) = extract_int_indexes(bytes);
+
+    let is_entire_slice = start_idx == 0 && end_idx == bytes.len();
+    let prefix = &slice[..start_idx];
+    let int_str = &slice[start_idx..end_idx];
+
+    *slice = &slice[end_idx..];
+
+    Some((prefix, int_str, is_entire_slice))
+}
+
+pub trait IterInts {
+    fn iter_ints<T: FromStr>(&self) -> impl Iterator<Item = T> + '_;
+
+    fn iter_named_ints<T: FromStr>(&self) -> impl Iterator<Item = (&str, T)> + '_;
 }
 
 impl IterInts for &str {
-    fn iter_ints<T: FromStr>(&self) -> IntParser<'_, T> {
-        IntParser {
-            slice: self,
-            _phantom_data: PhantomData,
-        }
+    fn iter_ints<T: FromStr>(&self) -> impl Iterator<Item = T> + '_ {
+        let mut slice = *self;
+        std::iter::from_fn(move || {
+            let (_, int_str, _) = split_next_int(&mut slice)?;
+            int_str.parse::<T>().ok()
+        })
     }
 
-    fn iter_named_ints<T: FromStr>(&self) -> NamedIntParser<'_, T> {
-        NamedIntParser {
-            slice: self,
-            _phantom_data: PhantomData,
-        }
-    }
-}
-
-impl<T: FromStr> Iterator for IntParser<'_, T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let bytes = self.slice.as_bytes();
-        let (start_idx, end_idx) = extract_int_indexes(bytes);
-        let parsing_result = self.slice[start_idx..end_idx].parse::<T>().ok();
-        self.slice = &self.slice[end_idx..];
-        parsing_result
-    }
-}
-
-impl<'a, T: FromStr> Iterator for NamedIntParser<'a, T>
-where
-    <T as FromStr>::Err: std::fmt::Debug,
-{
-    type Item = (&'a str, T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let bytes = self.slice.as_bytes();
-
-            let (start_idx, end_idx) = extract_int_indexes(bytes);
-
-            if start_idx == 0 && end_idx == bytes.len() {
-                break;
-            }
-
-            if start_idx <= 1 {
-                self.slice = &self.slice[end_idx..];
-                continue;
-            }
-
-            let integer = self.slice[start_idx..end_idx].parse::<T>().unwrap();
-            let sub_str = self.slice[..start_idx - 1].split_ascii_whitespace();
-            if let Some(last_word) = sub_str.last() {
-                let name = if !last_word.chars().last().unwrap().is_alphabetic() {
-                    &last_word[..last_word.len() - 1]
-                } else {
-                    last_word
-                };
-
-                if name.is_empty() {
-                    self.slice = &self.slice[end_idx..];
-                    continue;
+    fn iter_named_ints<T: FromStr>(&self) -> impl Iterator<Item = (&str, T)> + '_ {
+        let mut slice = *self;
+        std::iter::from_fn(move || {
+            while let Some((prefix, int_str, is_entire_slice)) = split_next_int(&mut slice) {
+                if is_entire_slice {
+                    return None;
                 }
 
-                self.slice = &self.slice[end_idx..];
-                return Some((name, integer));
+                if let Ok(integer) = int_str.parse::<T>()
+                    && prefix.len() > 1
+                {
+                    if let Some(last_word) =
+                        prefix[..prefix.len() - 1].split_ascii_whitespace().last()
+                    {
+                        let name = if !last_word.chars().last().unwrap().is_alphabetic() {
+                            &last_word[..last_word.len() - 1]
+                        } else {
+                            last_word
+                        };
+
+                        if name.is_empty() {
+                            continue;
+                        }
+
+                        return Some((name, integer));
+                    }
+                } else {
+                    continue;
+                };
             }
 
-            self.slice = &self.slice[end_idx..];
-            continue;
-        }
-
-        None
+            None
+        })
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,16 +150,16 @@ mod tests {
         assert_eq!(None, it.next());
 
         let text = "2";
-        let mut it: NamedIntParser<i64> = text.iter_named_ints();
+        let mut it = text.iter_named_ints::<i64>();
         assert_eq!(None, it.next());
 
         let text = "a 3434";
-        let mut it: NamedIntParser<i64> = text.iter_named_ints();
+        let mut it = text.iter_named_ints();
         assert_eq!(Some(("a", 3434)), it.next());
         assert_eq!(None, it.next());
 
         let text = "- neg: -2434 - 5 -8";
-        let mut it: NamedIntParser<i64> = text.iter_named_ints();
+        let mut it = text.iter_named_ints();
         assert_eq!(Some(("neg", -2434)), it.next());
         assert_eq!(None, it.next());
     }
