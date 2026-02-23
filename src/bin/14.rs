@@ -1,6 +1,17 @@
 use advent_of_code::utils::parsing::UnwrapNextInt;
+use std::env;
 
 advent_of_code::solution!(14);
+
+// this is a workaround due to this framework not having a way to pass different parameters
+// to tests and normal input solutions
+fn get_after_value_workaround() -> i64 {
+    if let Ok(var_value) = env::var("AFTER") {
+        var_value.parse().unwrap()
+    } else {
+        2503
+    }
+}
 
 struct Deer {
     speed: i64,
@@ -51,16 +62,15 @@ fn parse_deer_list(input: &str) -> Vec<Deer> {
     deer_list
 }
 
-//const AFTER: i64 = 1000; // for tests
-const AFTER: i64 = 2503;  // for actual input
-
 pub fn part_one(input: &str) -> Option<i64> {
+    let after = get_after_value_workaround();
+
     let deer_list = parse_deer_list(input);
 
     Some(
         deer_list
             .into_iter()
-            .map(|deer| deer.distance_after(AFTER))
+            .map(|deer| deer.distance_after(after))
             .max()
             .unwrap(),
     )
@@ -72,6 +82,8 @@ enum DeerStatus {
 }
 
 pub fn part_two(input: &str) -> Option<i64> {
+    let after = get_after_value_workaround();
+    
     let deer_list = parse_deer_list(input);
     let mut deer_statuses: Vec<DeerStatus> = deer_list
         .iter()
@@ -81,15 +93,15 @@ pub fn part_two(input: &str) -> Option<i64> {
     let mut distances = vec![0; deer_list.len()];
     let mut current_max_dist = 0;
 
-    for _ in 0..AFTER {
+    for _ in 0..after {
         for (i, deer) in deer_list.iter().enumerate() {
             let deer_status = &deer_statuses[i];
-            
+
             if let DeerStatus::WithStamina(_) = deer_status {
                 distances[i] += deer.speed;
                 current_max_dist = current_max_dist.max(distances[i]);
             }
-            
+
             deer_statuses[i] = match deer_status {
                 DeerStatus::WithStamina(1) => DeerStatus::Exhausted(deer.rest),
                 DeerStatus::Exhausted(1) => DeerStatus::WithStamina(deer.stamina),
@@ -114,12 +126,18 @@ mod tests {
 
     #[test]
     fn test_part_one() {
+        unsafe {
+            env::set_var("AFTER", "1000");
+        };
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
         assert_eq!(result, Some(1120));
     }
 
     #[test]
     fn test_part_two() {
+        unsafe {
+            env::set_var("AFTER", "1000");
+        };
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
         assert_eq!(result, Some(689));
     }
