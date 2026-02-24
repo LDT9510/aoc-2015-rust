@@ -1,15 +1,14 @@
+use advent_of_code::utils::parsing::IterInts;
+use itertools::Itertools;
+
 advent_of_code::solution!(2);
 
 pub fn part_one(input: &str) -> Option<u64> {
     Some(
         input
             .lines()
-            .map(|str_dimensions| {
-                let num_dimensions: Vec<u64> = str_dimensions
-                    .split('x')
-                    .filter_map(|d| d.parse::<u64>().ok())
-                    .collect();
-                let [l, w, h]: [u64; 3] = num_dimensions.try_into().unwrap();
+            .filter_map(|str_dimensions| str_dimensions.iter_ints::<u64>().collect_tuple())
+            .map(|(l, w, h)| {
                 let sides = [l * w, w * h, h * l];
                 sides.iter().map(|s| s * 2).sum::<u64>() + sides.iter().min().unwrap()
             })
@@ -21,15 +20,8 @@ pub fn part_two(input: &str) -> Option<u64> {
     Some(
         input
             .lines()
-            .map(|str_dimensions| {
-                let mut num_dimensions: Vec<u64> = str_dimensions
-                    .split('x')
-                    .filter_map(|d| d.parse::<u64>().ok())
-                    .collect();
-                num_dimensions.sort();
-                num_dimensions.iter().take(2).map(|n| n + n).sum::<u64>()
-                    + num_dimensions.iter().product::<u64>()
-            })
+            .filter_map(|str_dimensions| str_dimensions.iter_ints::<u64>().collect_tuple())
+            .map(|(l, w, h)| (l + l + w + w) + (l * w * h))
             .sum(),
     )
 }

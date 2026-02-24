@@ -1,4 +1,5 @@
-use advent_of_code::utils::parsing::UnwrapNextInt;
+use advent_of_code::utils::parsing::IterInts;
+use itertools::Itertools;
 use std::env;
 
 advent_of_code::solution!(14);
@@ -20,6 +21,16 @@ struct Deer {
 }
 
 impl Deer {
+    fn from_str(text: &str) -> Option<Deer> {
+        text.iter_ints()
+            .collect_tuple()
+            .map(|(speed, stamina, rest)| Deer {
+                speed,
+                rest,
+                stamina,
+            })
+    }
+
     fn distance_after(&self, seconds: i64) -> i64 {
         let burst_len = self.stamina + self.rest;
         let bursts = seconds as f64 / burst_len as f64;
@@ -35,28 +46,7 @@ fn parse_deer_list(input: &str) -> Vec<Deer> {
     let mut deer_list = Vec::new();
 
     for line in input.lines() {
-        let split = line.split_ascii_whitespace();
-
-        // <name> can fly
-        let mut split = split.skip(3);
-
-        let speed = split.unwrap_next_int();
-
-        // km/s for
-        let mut split = split.skip(2);
-
-        let stamina = split.unwrap_next_int();
-
-        // seconds, but then must rest for
-        let mut split = split.skip(6);
-
-        let rest = split.unwrap_next_int();
-
-        deer_list.push(Deer {
-            speed,
-            rest,
-            stamina,
-        })
+        deer_list.push(Deer::from_str(line).unwrap())
     }
 
     deer_list
@@ -83,7 +73,7 @@ enum DeerStatus {
 
 pub fn part_two(input: &str) -> Option<i64> {
     let after = get_after_value_workaround();
-    
+
     let deer_list = parse_deer_list(input);
     let mut deer_statuses: Vec<DeerStatus> = deer_list
         .iter()

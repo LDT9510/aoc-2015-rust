@@ -11,21 +11,27 @@ struct Ingredient {
     calories: i64,
 }
 
+impl Ingredient {
+    fn from_str(text: &str) -> Option<Ingredient> {
+        text.iter_ints()
+            .collect_tuple()
+            .map(
+                |(capacity, durability, flavor, texture, calories)| Ingredient {
+                    capacity,
+                    durability,
+                    flavor,
+                    texture,
+                    calories,
+                },
+            )
+    }
+}
+
 fn parse_ingredients(input: &str) -> Vec<Ingredient> {
     let mut ingredients = Vec::new();
 
     for line in input.lines() {
-        if let Some((capacity, durability, flavor, texture, calories)) =
-            line.iter_ints().collect_tuple()
-        {
-            ingredients.push(Ingredient {
-                capacity,
-                durability,
-                flavor,
-                texture,
-                calories,
-            })
-        }
+        ingredients.push(Ingredient::from_str(line).unwrap())
     }
 
     ingredients

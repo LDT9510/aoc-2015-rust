@@ -1,6 +1,8 @@
+use advent_of_code::utils::parsing::IterInts;
+
 advent_of_code::solution!(12);
 
-//solution using serde_json, simpler but slower (about 5x slower in --release)
+//solution for part_two using serde_json, simpler but slower (about 5x slower in --release)
 // fn sum_json(value: &Value) -> i64 {
 //     match value {
 //         Value::Number(n) => n.as_i64().unwrap_or(0),
@@ -21,21 +23,7 @@ advent_of_code::solution!(12);
 // }
 
 pub fn part_one(input: &str) -> Option<i64> {
-    let mut result = 0;
-    let mut buf = String::with_capacity(10);
-
-    for w in input.as_bytes().windows(2) {
-        if w[0].is_ascii_digit() || (w[0] == b'-' && w[1].is_ascii_digit()) {
-            buf.push(w[0] as char);
-        } else if !buf.is_empty()
-            && let Ok(num) = buf.parse::<i64>()
-        {
-            result += num;
-            buf.clear();
-        }
-    }
-
-    Some(result)
+    Some(input.iter_ints::<i64>().sum())
 }
 
 struct RedFinder {
@@ -173,7 +161,7 @@ pub fn part_two(input: &str) -> Option<i64> {
                         ObjectContext::Child(depth - 1)
                     }
                 }
-                _ => unreachable!("Open bracket not found"),
+                _ => panic!("Open bracket not found, bad input."),
             };
 
             object_contrib = 0;
